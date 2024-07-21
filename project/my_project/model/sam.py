@@ -314,7 +314,6 @@ class Anchor_SAM(MaskRCNN):
     def __init__(
             self,
             shared_image_embedding,
-            adapter=None,
             decoder_freeze=True,
             *args,
             **kwargs):
@@ -322,14 +321,20 @@ class Anchor_SAM(MaskRCNN):
         super().__init__(*args, **kwargs)
         self.shared_image_embedding = MODELS.build(shared_image_embedding)
 
-        self.adapter = False
-        if adapter is not None:
-            self.adapter = MODELS.build(adapter)
+        require_img_encoder = ['adapter', 'prompt_generator', 'InteractionBlocks', 'level_embed']
+        # require_img_encoder = []
+        for name, param in self.backbone.named_parameters():
+            requires_grad = False
+            for u in require_img_encoder:
+                if u in name:
+                    requires_grad = True
+                    break
+            param.requires_grad = requires_grad
 
         self.decoder_freeze = decoder_freeze
         self.frozen_modules = []
-        if peft_config is None:
-            self.frozen_modules += [self.backbone]
+        # if peft_config is None:
+        #     self.frozen_modules += [self.backbone]
         if self.decoder_freeze:
             self.frozen_modules += [
                 self.shared_image_embedding,
@@ -364,10 +369,8 @@ class Anchor_SAM(MaskRCNN):
         return positional_embedding.permute(2, 0, 1).unsqueeze(0)  # channel x height x width
 
     def extract_feat(self, batch_inputs: Tensor) -> Tuple[Tensor]:
-        if self.adapter:
-            vision_outputs = self.backbone(batch_inputs, adapter=self.adapter)
-        else:
-            vision_outputs = self.backbone(batch_inputs)
+
+        vision_outputs = self.backbone(batch_inputs)
         if isinstance(vision_outputs, SamVisionEncoderOutput):
             image_embeddings = vision_outputs[0]
             vision_hidden_states = vision_outputs[1]

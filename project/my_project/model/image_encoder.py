@@ -5,7 +5,7 @@ from transformers import SamVisionConfig
 from transformers.models.sam.modeling_sam import (
     SamVisionEncoderOutput, SamVisionLayer, SamPatchEmbeddings, SamVisionNeck, SamVisionAttention, SamMLPBlock
 )
-from .My_Modules import Adapter
+from .My_Modules import Adapter,Linear_Adapter
 from typing import Optional, Tuple, Union
 
 from mmdet.registry import MODELS
@@ -20,6 +20,7 @@ class Block(nn.Module):
         self.use_block_adapter =use_block_adapter
         if use_block_adapter:
             self.adapter=Adapter(config.hidden_size)
+            self.linear_apdapter=Linear_Adapter(config.hidden_size)
 
     def window_partition(self, hidden_states: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
         """
@@ -104,6 +105,8 @@ class Block(nn.Module):
         hidden_states, attn_weights = self.attn_no_grad(
             hidden_states=hidden_states,
         )
+        if self.use_block_adapter:
+            hidden_states=self.linear_apdapter(hidden_states)
 
         # Reverse window partition
         if self.window_size > 0:
@@ -118,7 +121,7 @@ class Block(nn.Module):
         hidden_states = hidden_states + self.mlp(layernorm_output)
 
         if self.use_block_adapter:
-            hidden_states = self.Adapter(hidden_states)+hidden_states
+            hidden_states = self.adapter(hidden_states)
 
         outputs = (hidden_states,)
 
