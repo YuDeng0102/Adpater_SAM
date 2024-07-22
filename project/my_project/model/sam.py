@@ -321,7 +321,7 @@ class Anchor_SAM(MaskRCNN):
         super().__init__(*args, **kwargs)
         self.shared_image_embedding = MODELS.build(shared_image_embedding)
 
-        require_img_encoder = ['adapter', 'prompt_generator', 'InteractionBlocks', 'level_embed']
+        require_img_encoder = ['adapter', 'prompt_generator','fft','linear_adapter']
         # require_img_encoder = []
         for name, param in self.backbone.named_parameters():
             requires_grad = False
@@ -346,7 +346,7 @@ class Anchor_SAM(MaskRCNN):
         for name,param in self.named_parameters():
             if param.requires_grad:
                 sum_p+=param.numel()
-            print(name)
+                print(name)
         print(f'tot params={sum_p/(2**20)}M')
     def _set_grad_false(self, module_list=[]):
         for module in module_list:

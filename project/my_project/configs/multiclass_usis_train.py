@@ -28,7 +28,7 @@ data_preprocessor = dict(
 
 model = dict(
     data_preprocessor=data_preprocessor,
-    decoder_freeze=True,
+    decoder_freeze=False,
     shared_image_embedding=dict(extra_config=dict(image_size=crop_size[0])),
     backbone=dict(extra_config=dict(image_size=crop_size[0])),
     roi_head=dict(bbox_head=dict(num_classes=num_classes)),

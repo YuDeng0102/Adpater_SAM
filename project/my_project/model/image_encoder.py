@@ -6,6 +6,7 @@ from transformers.models.sam.modeling_sam import (
     SamVisionEncoderOutput, SamVisionLayer, SamPatchEmbeddings, SamVisionNeck, SamVisionAttention, SamMLPBlock
 )
 from .My_Modules import Adapter,Linear_Adapter
+from .My_Modules import PromptGenerator,PatchEmbed2
 from typing import Optional, Tuple, Union
 
 from mmdet.registry import MODELS
@@ -20,7 +21,7 @@ class Block(nn.Module):
         self.use_block_adapter =use_block_adapter
         if use_block_adapter:
             self.adapter=Adapter(config.hidden_size)
-            self.linear_apdapter=Linear_Adapter(config.hidden_size)
+            # self.linear_adapter=Linear_Adapter(config.hidden_size)
 
     def window_partition(self, hidden_states: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
         """
@@ -105,13 +106,13 @@ class Block(nn.Module):
         hidden_states, attn_weights = self.attn_no_grad(
             hidden_states=hidden_states,
         )
-        if self.use_block_adapter:
-            hidden_states=self.linear_apdapter(hidden_states)
 
         # Reverse window partition
         if self.window_size > 0:
             hidden_states = self.window_unpartition(hidden_states, self.window_size, padding_shape, (height, width))
 
+        if self.use_block_adapter:
+            hidden_states = self.adapter(hidden_states)
 
         hidden_states = residual + hidden_states
 
@@ -120,8 +121,8 @@ class Block(nn.Module):
 
         hidden_states = hidden_states + self.mlp(layernorm_output)
 
-        if self.use_block_adapter:
-            hidden_states = self.adapter(hidden_states)
+        # if self.use_block_adapter:
+        #     hidden_states = self.adapter(hidden_states)
 
         outputs = (hidden_states,)
 
@@ -158,6 +159,16 @@ class image_encoder(nn.Module):
             self.Blocks.append(block)
 
         self.neck = SamVisionNeck(config)
+        self.embed_dim=config.hidden_size
+
+        self.scale_factor = 32
+        self.input_type = 'fft'
+        self.freq_nums = 0.4
+
+        self.prompt_generator = PromptGenerator(self.scale_factor, self.embed_dim,
+                                                config.num_hidden_layers, self.input_type, self.freq_nums,
+                                                config.image_size, config.patch_size)
+        self.fft_alpha = nn.Parameter(0 * torch.ones((self.embed_dim)), requires_grad=True)
 
 
     def get_input_embeddings(self):
@@ -183,6 +194,8 @@ class image_encoder(nn.Module):
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
+        inp = pixel_values
+
         if pixel_values is None:
             raise ValueError("You have to specify pixel_values")
 
@@ -197,11 +210,18 @@ class image_encoder(nn.Module):
         all_hidden_states = () if output_hidden_states else None
 
 
+        # fft adapter
+        embedding_feature = self.prompt_generator.init_embeddings(hidden_states)
+        handcrafted_feature = self.prompt_generator.init_handcrafted(inp)
+        prompt = self.prompt_generator.get_prompt(handcrafted_feature, embedding_feature)
+
+        B, H, W, _ = hidden_states.shape
+
         for i, block in enumerate(self.Blocks):
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
-
+            hidden_states=hidden_states+prompt[i].reshape(B,H,W,-1)
             layer_outputs = block(hidden_states)
             hidden_states = layer_outputs[0]
 

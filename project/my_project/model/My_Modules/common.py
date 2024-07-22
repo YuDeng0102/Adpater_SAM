@@ -104,7 +104,7 @@ class Adapter(nn.Module):
         nonlinear = self.nonlinear(project1)
         nonlinear = self.dropout(nonlinear)
         project2 = self.project2(nonlinear)
-        return project2+x
+        return project2+identity
 
 
 
