@@ -174,7 +174,7 @@ class Adapted_ImageEncoderViT(BaseModule):
 
 
         inp=x
-        deform_inputs1, deform_inputs2 = deform_inputs(x)
+        # deform_inputs1, deform_inputs2 = deform_inputs(x)
         # Patch embeding
         x = self.patch_embed(x)
 

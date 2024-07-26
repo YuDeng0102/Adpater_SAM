@@ -5,6 +5,7 @@ import torch.nn as nn
 import math
 import warnings
 from .common import MLPBlock
+import torch.nn.functional as F
 
 from itertools import repeat
 TORCH_MAJOR = int(torch.__version__.split('.')[0])
@@ -149,7 +150,8 @@ class PromptGenerator(nn.Module):
         return self.embedding_generator(x)
 
     def init_handcrafted(self, x):
-        x = self.fft(x, self.freq_nums)
+        # x = self.fft(x, self.freq_nums)
+        x=self.edge_extraction(x)
         return self.prompt_generator(x)
 
     def get_prompt(self, handcrafted_feature, embedding_feature):
@@ -185,3 +187,21 @@ class PromptGenerator(nn.Module):
         inv = torch.abs(inv)
 
         return inv
+
+    def edge_extraction(self,input_images):
+        # 使用Sobel算子提取边缘信息
+        sobel_x = torch.tensor([[1, 0, -1],
+                                [2, 0, -2],
+                                [1, 0, -1]], dtype=torch.float32).view(1, 1, 3, 3)
+        sobel_y = torch.tensor([[1, 2, 1],
+                                [0, 0, 0],
+                                [-1, -2, -1]], dtype=torch.float32).view(1, 1, 3, 3)
+
+        # 执行卷积操作
+        edge_x = F.conv2d(input_images, sobel_x.to(input_images.device), padding=1)
+        edge_y = F.conv2d(input_images, sobel_y.to(input_images.device), padding=1)
+
+        # 计算边缘强度
+        edge_strength = torch.sqrt(edge_x ** 2 + edge_y ** 2)
+
+        return edge_strength

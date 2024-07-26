@@ -94,7 +94,7 @@ model = dict(
             in_channels=[64, 128, 256, 256],
             out_channels=256,
             num_outs=5,
-            norm_cfg=dict(type='LN2d', requires_grad=True)),
+            norm_cfg=dict(type='LayerNorm2d', requires_grad=True)),
     ),
     rpn_head=dict(
         type='RPNHead',

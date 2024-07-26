@@ -806,3 +806,41 @@ class PrompterAnchorMaskHead(FCNMaskHead, BaseModule):
         return dict(loss_mask=loss, mask_targets=mask_targets)
 
 
+@MODELS.register_module()
+class SAMSegMaskRCNN(MaskRCNN):
+    def __init__(
+            self,
+            *args,
+            **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        require_img_encoder = ['adapter', 'prompt_generator','InteractionBlocks','level_embed']
+        # require_img_encoder = []
+        for name, param in self.backbone.named_parameters():
+            requires_grad = False
+            for u in require_img_encoder:
+                if u in name:
+                    requires_grad = True
+                    break
+            param.requires_grad = requires_grad
+
+        for name, param in self.named_parameters():
+            if param.requires_grad == True:
+                print(name)
+
+        trainable_num = sum(p.numel() for p in self.parameters() if p.requires_grad == True)
+        print(f'tot paramaters:{trainable_num / (2 ** 20)}M')
+
+    def extract_feat(self, batch_inputs: Tensor) -> Tuple[Tensor]:
+        vision_outputs = self.backbone(batch_inputs)
+        if isinstance(vision_outputs, SamVisionEncoderOutput):
+            image_embeddings = vision_outputs.last_hidden_state
+            vision_hidden_states = vision_outputs.hidden_states
+        elif isinstance(vision_outputs, list) or  isinstance(vision_outputs, tuple):
+            image_embeddings = vision_outputs[0]
+            vision_hidden_states = vision_outputs
+        else:
+            raise NotImplementedError
+        x = self.neck(vision_hidden_states)
+        return x

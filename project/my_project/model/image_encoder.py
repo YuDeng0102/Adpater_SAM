@@ -6,7 +6,7 @@ from transformers.models.sam.modeling_sam import (
     SamVisionEncoderOutput, SamVisionLayer, SamPatchEmbeddings, SamVisionNeck, SamVisionAttention, SamMLPBlock
 )
 from .My_Modules import Adapter,Linear_Adapter
-from .My_Modules import PromptGenerator,PatchEmbed2
+from .My_Modules import PromptGenerator
 from typing import Optional, Tuple, Union
 
 from mmdet.registry import MODELS
@@ -21,7 +21,7 @@ class Block(nn.Module):
         self.use_block_adapter =use_block_adapter
         if use_block_adapter:
             self.adapter=Adapter(config.hidden_size)
-            # self.linear_adapter=Linear_Adapter(config.hidden_size)
+
 
     def window_partition(self, hidden_states: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
         """
@@ -150,13 +150,13 @@ class image_encoder(nn.Module):
                 )
             )
 
-        self.Blocks = nn.ModuleList()
+        self.layers = nn.ModuleList()
         for i in range(config.num_hidden_layers):
-            block = Block(
+            layer= Block(
                 config,
                 window_size=config.window_size if i not in config.global_attn_indexes else 0,
             )
-            self.Blocks.append(block)
+            self.layers.append(layer)
 
         self.neck = SamVisionNeck(config)
         self.embed_dim=config.hidden_size
