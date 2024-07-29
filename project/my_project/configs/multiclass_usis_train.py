@@ -1,6 +1,6 @@
-_base_ = ['anchor_sam.py']
-
-work_dir = './work_dirs/Adapter_SAM/BJFU_base'
+# _base_ = ['anchor_sam.py']
+_base_ = ['SamSeg.py']
+work_dir = './work_dirs/SamSeg/data--_base'
 
 ## ---------------------- MODEL ----------------------
 
@@ -28,8 +28,8 @@ data_preprocessor = dict(
 
 model = dict(
     data_preprocessor=data_preprocessor,
-    decoder_freeze=False,
-    shared_image_embedding=dict(extra_config=dict(image_size=crop_size[0])),
+    # decoder_freeze=False,
+    # shared_image_embedding=dict(extra_config=dict(image_size=crop_size[0])),
     backbone=dict(extra_config=dict(image_size=crop_size[0])),
     roi_head=dict(bbox_head=dict(num_classes=num_classes)),
     train_cfg=dict(rcnn=dict(mask_size=crop_size))

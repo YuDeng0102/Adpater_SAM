@@ -161,7 +161,7 @@ class image_encoder(nn.Module):
         self.neck = SamVisionNeck(config)
         self.embed_dim=config.hidden_size
 
-        self.scale_factor = 32
+        self.scale_factor = 16
         self.input_type = 'fft'
         self.freq_nums = 0.4
 
@@ -217,7 +217,7 @@ class image_encoder(nn.Module):
 
         B, H, W, _ = hidden_states.shape
 
-        for i, block in enumerate(self.Blocks):
+        for i, block in enumerate(self.layers):
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 

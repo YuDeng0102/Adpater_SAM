@@ -6,14 +6,18 @@ import math
 import warnings
 from .common import MLPBlock
 import torch.nn.functional as F
+from torchvision.transforms.functional import rgb_to_grayscale
 
 from itertools import repeat
+
 TORCH_MAJOR = int(torch.__version__.split('.')[0])
 TORCH_MINOR = int(torch.__version__.split('.')[1])
 if TORCH_MAJOR == 1 and TORCH_MINOR < 8:
     from torch._six import container_abcs
 else:
     import collections.abc as container_abcs
+
+
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
     # Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
@@ -48,6 +52,8 @@ def _no_grad_trunc_normal_(tensor, mean, std, a, b):
         # Clamp to ensure it's in the proper range
         tensor.clamp_(min=a, max=b)
         return tensor
+
+
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     # type: (Tensor, float, float, float, float) -> Tensor
     r"""Fills the input Tensor with values drawn from a truncated
@@ -69,11 +75,12 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
 
 
-
 def to_2tuple(x):
     if isinstance(x, container_abcs.Iterable):
         return x
     return tuple(repeat(x, 2))
+
+
 class PatchEmbed2(nn.Module):
     """ Image to Patch Embedding
     """
@@ -83,7 +90,7 @@ class PatchEmbed2(nn.Module):
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
         num_patches = (img_size[1] // patch_size[1]) * \
-            (img_size[0] // patch_size[0])
+                      (img_size[0] // patch_size[0])
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
@@ -124,7 +131,7 @@ class PromptGenerator(nn.Module):
             setattr(self, 'lightweight_mlp_{}'.format(str(i)), lightweight_mlp)
 
         self.prompt_generator = PatchEmbed2(img_size=img_size,
-                                            patch_size=patch_size, in_chans=3,
+                                            patch_size=patch_size, in_chans=1,
                                             embed_dim=self.embed_dim // self.scale_factor)
 
         self.apply(self._init_weights)
@@ -151,7 +158,8 @@ class PromptGenerator(nn.Module):
 
     def init_handcrafted(self, x):
         # x = self.fft(x, self.freq_nums)
-        x=self.edge_extraction(x)
+
+        x = self.edge_extraction(rgb_to_grayscale(x))
         return self.prompt_generator(x)
 
     def get_prompt(self, handcrafted_feature, embedding_feature):
@@ -188,7 +196,7 @@ class PromptGenerator(nn.Module):
 
         return inv
 
-    def edge_extraction(self,input_images):
+    def edge_extraction(self, input_images):
         # 使用Sobel算子提取边缘信息
         sobel_x = torch.tensor([[1, 0, -1],
                                 [2, 0, -2],
