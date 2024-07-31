@@ -111,15 +111,21 @@ class Conv2d_vd(nn.Module):
 
 
 class DEConv(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, in_dim,scaler=16):
         super(DEConv, self).__init__()
+        dim=in_dim//scaler
+        self.down=nn.Conv2d(in_dim,dim,kernel_size=1)
         self.conv1_1 = Conv2d_cd(dim, dim, 3, bias=True)
         self.conv1_2 = Conv2d_hd(dim, dim, 3, bias=True)
         self.conv1_3 = Conv2d_vd(dim, dim, 3, bias=True)
         self.conv1_4 = Conv2d_ad(dim, dim, 3, bias=True)
         self.conv1_5 = nn.Conv2d(dim, dim, 3, padding=1, bias=True)
-
+        self.up=nn.Conv2d(dim,in_dim,kernel_size=1)
     def forward(self, x):
+
+
+        x=x.permute(0,3,1,2)
+        x=self.down(x)
         w1, b1 = self.conv1_1.get_weight()
         w2, b2 = self.conv1_2.get_weight()
         w3, b3 = self.conv1_3.get_weight()
@@ -130,7 +136,7 @@ class DEConv(nn.Module):
         b = b1 + b2 + b3 + b4 + b5
         res = nn.functional.conv2d(input=x, weight=w, bias=b, stride=1, padding=1, groups=1)
 
-        return res
+        return self.up(res).permute(0,2,3,1)
 
 if __name__ == '__main__':
     deconv=DEConv(768).cuda()
@@ -138,6 +144,6 @@ if __name__ == '__main__':
     x=torch.rand((1,768,64,64)).cuda()
     print(deconv(x).shape)
 
-    # for name, p in deconv.named_parameters():
-    #     sum_param += p.numel()
-    # print(f'{sum_param / (2 ** 20)}M')
+    for name, p in deconv.named_parameters():
+        sum_param += p.numel()
+    print(f'{sum_param / (2 ** 20)}M')

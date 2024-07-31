@@ -159,8 +159,11 @@ class PromptGenerator(nn.Module):
     def init_handcrafted(self, x):
         # x = self.fft(x, self.freq_nums)
 
-        x = self.edge_extraction(rgb_to_grayscale(x))
-        return self.prompt_generator(x)
+       if(self.input_type=='sobel'):
+            x = self.edge_extraction(rgb_to_grayscale(x))
+       else:
+            x=self.fft(x, self.freq_nums)
+       return self.prompt_generator(x)
 
     def get_prompt(self, handcrafted_feature, embedding_feature):
         N, C, H, W = handcrafted_feature.shape

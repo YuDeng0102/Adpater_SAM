@@ -4,3 +4,6 @@ from .common import (
 from .hfc_modules import (
     PromptGenerator,PatchEmbed2
 )
+from .deconv import(
+    DEConv
+)

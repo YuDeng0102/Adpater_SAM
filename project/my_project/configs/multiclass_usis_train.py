@@ -32,14 +32,14 @@ model = dict(
     # shared_image_embedding=dict(extra_config=dict(image_size=crop_size[0])),
     backbone=dict(extra_config=dict(image_size=crop_size[0])),
     roi_head=dict(bbox_head=dict(num_classes=num_classes)),
-    train_cfg=dict(rcnn=dict(mask_size=crop_size))
+    # train_cfg=dict(rcnn=dict(mask_size=crop_size))
 )
 
 ## ---------------------- Dataset ----------------------
 
 # dataset settings
 dataset_type = 'BjfuDataset'
-data_root = 'data/datasets_BJFU'
+data_root = 'data/data--'
 
 backend_args = None
 

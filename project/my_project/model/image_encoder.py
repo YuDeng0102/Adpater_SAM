@@ -5,7 +5,7 @@ from transformers import SamVisionConfig
 from transformers.models.sam.modeling_sam import (
     SamVisionEncoderOutput, SamVisionLayer, SamPatchEmbeddings, SamVisionNeck, SamVisionAttention, SamMLPBlock
 )
-from .My_Modules import Adapter,Linear_Adapter
+from .My_Modules import Adapter,Linear_Adapter,DEConv
 from .My_Modules import PromptGenerator
 from typing import Optional, Tuple, Union
 
@@ -20,7 +20,7 @@ class Block(nn.Module):
         self.window_size = window_size
         self.use_block_adapter =use_block_adapter
         if use_block_adapter:
-            self.adapter=Adapter(config.hidden_size)
+            self.adapter=DEConv(config.hidden_size)
 
 
     def window_partition(self, hidden_states: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
@@ -162,7 +162,7 @@ class image_encoder(nn.Module):
         self.embed_dim=config.hidden_size
 
         self.scale_factor = 16
-        self.input_type = 'fft'
+        self.input_type = 'sobel'
         self.freq_nums = 0.4
 
         self.prompt_generator = PromptGenerator(self.scale_factor, self.embed_dim,
